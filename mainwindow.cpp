@@ -62,6 +62,7 @@ void MainWindow::plot()
 void MainWindow::clearData()
 {
     qv_x_tc.clear();
+    qv_x_fft.clear();
     qv_tc.clear();
     qv_fft.clear();
 }
@@ -74,12 +75,13 @@ void MainWindow::on_btn_start_clicked()
 {
     uhd::set_thread_priority_safe();
 
-    args="addr=192.168.101.4";
-    subdev="A:0";
-    ant="TX/RX";
-    ref="internal";
 
     killLoopFlag_ = false;
+
+    double fft_left = freq/MEGA-rate/(MEGA*2);
+    double fft_right = freq/MEGA+rate/(MEGA*2);
+    double fft_band = fft_right-fft_left;
+    double fft_step = fft_band/num_bins;
 
     setAxis();
     ui->btn_stop->setEnabled(true);
@@ -90,9 +92,14 @@ void MainWindow::on_btn_start_clicked()
     fftw_complex x[num_bins];
     fftw_complex y[num_bins];
 
-  /*  std::cout << std::endl;
+    args="addr=192.168.101.4";
+    subdev="A:0";
+    ant="TX/RX";
+    ref="internal";
+
+    std::cout << std::endl;
     std::cout << boost::format("Creating the usrp device with: %s...") % args << std::endl;
-    uhd::usrp::multi_usrp::sptr usrp = uhd::usrp::multi_usrp::make(args);
+    usrp = uhd::usrp::multi_usrp::make(args);
 
     std::cout << boost::format("Lock mboard clocks: %f") % ref << std::endl;
     usrp->set_clock_source(ref);
@@ -154,10 +161,9 @@ void MainWindow::on_btn_start_clicked()
     rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
     auto next_refresh = std::chrono::high_resolution_clock::now();
-    */
+
     while(1){
-        std::cout<<1<<std::endl;
-       /* size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md);
+        size_t num_rx_samps = rx_stream->recv(&buff.front(), buff.size(), md);
         if (num_rx_samps != buff.size())
             continue;
 
@@ -165,15 +171,18 @@ void MainWindow::on_btn_start_clicked()
             continue;
         }
         next_refresh = std::chrono::high_resolution_clock::now()
-                       + std::chrono::microseconds(int64_t(1e6 /5 ));
+                       + std::chrono::microseconds(int64_t(1e6 /3 ));
 
         for(int i=0;i<int(num_bins);i++){
             qv_tc.push_back(double(buff[i].real()));
-            qv_x_tc.push_back(i*1/rate);
-            qv_x_fft.push_back(i);
+            qv_x_tc.push_back(i*(1/rate)*MEGA);
+            qv_x_fft.push_back(fft_left+i*fft_step);
+            //qv_x_fft.push_back(i);
             x[i][REAL] = double(buff[i].real());
             x[i][IMAG] = double(buff[i].imag());
+
         }
+
 
         fftw_plan plan = fftw_plan_dft_1d(int(num_bins),x,y,FFTW_FORWARD,FFTW_ESTIMATE);
         fftw_execute(plan);
@@ -192,9 +201,6 @@ void MainWindow::on_btn_start_clicked()
 
         plot();
         clearData();
-        */
-        //std::cout<<1<<std::endl;
-
 
 
 
@@ -225,8 +231,10 @@ void MainWindow::setAxis()
     ui->plot1->addGraph();
     ui->plot2->addGraph();
     ui->plot1->xAxis->setRange(0,(1/rate)*num_bins*MEGA);
+    //ui->plot1->xAxis->setRange(0,1024);
     ui->plot1->yAxis->setRange(-0.02, 0.02);
-    ui->plot2->xAxis->setRange((freq-bw/2)/MEGA,(freq+bw/2)/MEGA);
+    ui->plot2->xAxis->setRange((freq-(rate/2))/MEGA,(freq+(rate/2))/MEGA);
+    //ui->plot2->xAxis->setRange(0,1024);
     ui->plot2->yAxis->setRange(0,1);
     ui->plot1->replot();
     ui->plot1->update();
@@ -238,4 +246,9 @@ void MainWindow::setAxis()
 void MainWindow::on_btn_save_clicked()
 {
     save();
+}
+
+void MainWindow::init()
+{
+
 }

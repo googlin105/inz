@@ -30,10 +30,5 @@ void SecDialog::on_btn_set_clicked()
     *secFreq=ui->freqBox->value()*mega;
     *secGain=ui->gainBox->value();
     *secRate=ui->rateBox->value()*mega;
-    std::cout<<std::endl;
-    std::cout<<std::endl;
-    std::cout<<*secFreq<<std::endl;
-    std::cout<<*secBw<<std::endl;
-    std::cout<<*secGain<<std::endl;
-    std::cout<<*secRate<<std::endl;
+    this->close();
 }
