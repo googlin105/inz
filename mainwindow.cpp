@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     rate=1e6;
     freq=1037e5;
-    gain=10;
+    gain=30;
     bw=1e6;
     num_bins=1024;
 
@@ -38,6 +38,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->plot1->xAxis->setLabel("czas [us]");
     ui->plot2->xAxis->setLabel("czestotliwosc [MHz]");
     ui->btn_stop->setEnabled(false);
+    ui->plot1->setInteraction(QCP::iRangeZoom);
+    ui->plot2->setInteraction(QCP::iRangeZoom);
+    ui->plot1->axisRect()->setRangeZoom(Qt::Vertical);
+    ui->plot2->axisRect()->setRangeZoom(Qt::Vertical);
 
 
     connect( ui->btn_stop, SIGNAL( clicked() ),
@@ -82,6 +86,7 @@ void MainWindow::on_btn_start_clicked()
     double fft_right = freq/MEGA+rate/(MEGA*2);
     double fft_band = fft_right-fft_left;
     double fft_step = fft_band/num_bins;
+    double m=0;
 
     setAxis();
     ui->btn_stop->setEnabled(true);
@@ -181,7 +186,9 @@ void MainWindow::on_btn_start_clicked()
             x[i][REAL] = double(buff[i].real());
             x[i][IMAG] = double(buff[i].imag());
 
+            m=m+qv_tc[i]*qv_tc[i];
         }
+        std::cout<<20*log10(m/num_bins)<<std::endl;
 
 
         fftw_plan plan = fftw_plan_dft_1d(int(num_bins),x,y,FFTW_FORWARD,FFTW_ESTIMATE);
@@ -201,6 +208,7 @@ void MainWindow::on_btn_start_clicked()
 
         plot();
         clearData();
+        m=0;
 
 
 
@@ -232,7 +240,7 @@ void MainWindow::setAxis()
     ui->plot2->addGraph();
     ui->plot1->xAxis->setRange(0,(1/rate)*num_bins*MEGA);
     //ui->plot1->xAxis->setRange(0,1024);
-    ui->plot1->yAxis->setRange(-0.02, 0.02);
+    ui->plot1->yAxis->setRange(-1, 1);
     ui->plot2->xAxis->setRange((freq-(rate/2))/MEGA,(freq+(rate/2))/MEGA);
     //ui->plot2->xAxis->setRange(0,1024);
     ui->plot2->yAxis->setRange(0,1);
